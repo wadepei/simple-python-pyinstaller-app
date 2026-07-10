@@ -30,6 +30,8 @@ pipeline {
             agent {
                 docker {
                     image 'cdrx/pyinstaller-linux:python2'
+                    // 核心修改：清空 entrypoint
+                    args '--entrypoint=''''' 
                 }
             }
             steps {

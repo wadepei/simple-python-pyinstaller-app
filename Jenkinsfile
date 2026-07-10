@@ -31,9 +31,12 @@ pipeline {
             agent any 
             
             steps {
-                // 2. 使用标准的宿主机命令直接调度 Docker
-                // 注意：在 Docker 容器内的 Jenkins 需要确保挂载了 /var/run/docker.sock
-                sh 'docker run --rm -v ${WORKSPACE}:/src cdrx/pyinstaller-linux:python2 "pyinstaller --onefile sources/add2vals.py"'
+                script {
+                    // 动态获取当前正在运行的 Jenkins 容器 ID
+                    def jenkins_container_id = sh(script: "hostname", returnStdout: true).trim()
+                    
+                    sh "docker run --rm --volumes-from ${jenkins_container_id} -w ${WORKSPACE} cdrx/pyinstaller-linux:python2 'pyinstaller --onefile sources/add2vals.py'"
+                }
             }
             
             post {

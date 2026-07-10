@@ -35,9 +35,8 @@ pipeline {
                 }
             }
             steps {
-                // 核心修改：使用 Python 绝对路径调用 pyinstaller
-                sh 'python /pyinstaller/pyinstaller.py --onefile sources/add2vals.py'
-
+                // 核心修改：通过手动执行入口脚本，传递打包参数
+                sh '/entrypoint.sh --onefile sources/add2vals.py'
             }
             post {
                 success {

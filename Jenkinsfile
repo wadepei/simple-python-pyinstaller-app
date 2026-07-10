@@ -32,12 +32,24 @@ pipeline {
             
             steps {
                 script {
-                    // 1. 动态获取当前运行的 Jenkins 容器 ID
-                    def jenkins_container_id = sh(script: "hostname", returnStdout: true).trim()
+                    // 1. 启动一个后台运行的 pyinstaller 容器（让其暂不退出）
+                    // 使用 --entrypoint tail -f /dev/null 防止其执行原本有冲突的入口脚本
+                    sh 'docker run -d --name pyinstaller_build --entrypoint tail cdrx/pyinstaller-linux:python2 -f /dev/null'
                     
-                    // 2. 核心修改：使用 宿主机宿导向 挂载
-                    // 把 Jenkins 容器内的真实 ${WORKSPACE} 目录，挂载到打包容器认准的 /src 目录下
-                    sh "docker run --rm --volumes-from ${jenkins_container_id} -v ${WORKSPACE}:/src cdrx/pyinstaller-linux:python2 'pyinstaller --onefile sources/add2vals.py'"
+                    try {
+                        // 2. 将 Jenkins 当前工作区的所有代码，直接“推”送到容器内的 /src 目录下
+                        sh 'docker cp . pyinstaller_build:/src'
+                        
+                        // 3. 在容器内部执行打包命令（此时文件绝对存在于容器的 /src 中）
+                        // 注意：这里我们手动调用镜像原始的 /entrypoint.sh 来确保环境正常
+                        sh 'docker exec -w /src pyinstaller_build /entrypoint.sh "pyinstaller --onefile sources/add2vals.py"'
+                        
+                        // 4. 将容器内打包好的产物（dist目录），“拉”回到 Jenkins 的工作区
+                        sh 'docker cp pyinstaller_build:/src/dist .'
+                    } finally {
+                        // 5. 无论打包成功还是失败，最后都强行清理掉这个临时容器
+                        sh 'docker rm -f pyinstaller_build'
+                    }
                 }
             }
             

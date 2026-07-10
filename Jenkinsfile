@@ -35,7 +35,9 @@ pipeline {
                 }
             }
             steps {
-                sh 'pyinstaller --onefile sources/add2vals.py'
+                // 核心修改：使用 Python 绝对路径调用 pyinstaller
+                sh 'python /pyinstaller/pyinstaller.py --onefile sources/add2vals.py'
+
             }
             post {
                 success {

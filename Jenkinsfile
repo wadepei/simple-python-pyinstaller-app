@@ -32,10 +32,12 @@ pipeline {
             
             steps {
                 script {
-                    // 动态获取当前正在运行的 Jenkins 容器 ID
+                    // 1. 动态获取当前运行的 Jenkins 容器 ID
                     def jenkins_container_id = sh(script: "hostname", returnStdout: true).trim()
                     
-                    sh "docker run --rm --volumes-from ${jenkins_container_id} -w ${WORKSPACE} cdrx/pyinstaller-linux:python2 'pyinstaller --onefile sources/add2vals.py'"
+                    // 2. 核心修改：使用 宿主机宿导向 挂载
+                    // 把 Jenkins 容器内的真实 ${WORKSPACE} 目录，挂载到打包容器认准的 /src 目录下
+                    sh "docker run --rm --volumes-from ${jenkins_container_id} -v ${WORKSPACE}:/src cdrx/pyinstaller-linux:python2 'pyinstaller --onefile sources/add2vals.py'"
                 }
             }
             
